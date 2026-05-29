@@ -39,7 +39,9 @@ function renderItem(item) {
     ? item.paragraphs.map((en, idx) => ({ en, zh: item.paragraphs_zh[idx] ?? "" }))
     : item.paragraphs ?? [];
   return [
-    `<h3><a href="${escapeXml(item.url)}">${escapeXml(item.title)}</a>${titleZh}${meta}${sponsor}</h3>`,
+    item.url
+      ? `<h3><a href="${escapeXml(item.url)}">${escapeXml(item.title)}</a>${titleZh}${meta}${sponsor}</h3>`
+      : `<h3>${escapeXml(item.title)}${titleZh}${meta}${sponsor}</h3>`,
     ...paragraphs.map(renderParagraphPair),
   ].join("\n");
 }

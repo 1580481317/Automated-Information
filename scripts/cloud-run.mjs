@@ -48,12 +48,39 @@ function collectParts(payload, results = []) {
   return results;
 }
 
+function decodeHtmlEntities(value) {
+  return value
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function htmlToText(html) {
+  return decodeHtmlEntities(
+    html
+      .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => {
+        const cleanText = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        return cleanText ? `[${cleanText}](${href})` : href;
+      })
+      .replace(/<(br|p|div|li|h[1-6]|tr|table|section|article)\b[^>]*>/gi, "\n")
+      .replace(/<\/(p|div|li|h[1-6]|tr|table|section|article)>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n\s+/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim(),
+  );
+}
+
 function gmailMessageToDigestInput(message) {
   const headers = message.payload?.headers ?? [];
   const parts = collectParts(message.payload);
   const plain = parts.find((part) => part.mimeType === "text/plain")?.body;
   const html = parts.find((part) => part.mimeType === "text/html")?.body;
-  const body = plain || html?.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ") || message.snippet || "";
+  const body = plain || (html ? htmlToText(html) : "") || message.snippet || "";
   return {
     id: message.id,
     from: findHeader(headers, "From"),

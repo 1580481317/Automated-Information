@@ -70,6 +70,17 @@ function extractLink(line) {
   };
 }
 
+function extractPlainTitle(line) {
+  const readMatch = line.match(/^(.+?)\s+\(([^()]*?(?:minute read|Website|GitHub Repo|Hugging Face Repo|Sponsor))\)\s*$/i);
+  if (!readMatch) return null;
+  return {
+    title: readMatch[1].trim(),
+    meta: readMatch[2].trim(),
+    url: null,
+    sponsor: /\bSponsor\b/i.test(readMatch[2]),
+  };
+}
+
 function isFooter(line) {
   return FOOTER_MARKERS.some((marker) => line.startsWith(marker));
 }
@@ -115,7 +126,7 @@ export function parseMessage(message) {
       currentItem = null;
       continue;
     }
-    const link = extractLink(line);
+    const link = extractLink(line) ?? extractPlainTitle(line);
     if (link) {
       currentItem = {
         title: link.title,
