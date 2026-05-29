@@ -2,7 +2,7 @@ name: TLDR AI Daily Digest
 
 on:
   schedule:
-    - cron: "0 1 * * *" # 09:00 Asia/Shanghai
+    - cron: "0 0 * * *" # 08:00 Asia/Shanghai
   workflow_dispatch:
 
 jobs:
