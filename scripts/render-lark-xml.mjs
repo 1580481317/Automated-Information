@@ -24,7 +24,7 @@ function renderInlineMarkdown(value) {
 function renderParagraphPair(paragraph) {
   const en = typeof paragraph === "string" ? paragraph : paragraph.en;
   const zh = typeof paragraph === "string" ? "" : paragraph.zh;
-  const zhText = zh || "（待翻译）";
+  const zhText = zh || en;
   return [
     `<p>${renderInlineMarkdown(en)}</p>`,
     `<blockquote>${renderInlineMarkdown(zhText)}</blockquote>`,

@@ -197,16 +197,67 @@ async function translateDigest(parsed) {
   return JSON.parse(content);
 }
 
-function mergeTranslations(parsed, translated) {
+async function translateMissingTexts(texts) {
+  if (!texts.length) return [];
+  const completion = await jsonFetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${requireEnv("DEEPSEEK_API_KEY")}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [
+        {
+          role: "system",
+          content: "你是专业中文翻译。只返回严格 JSON：{\"translations\":[\"...\"]}。translations 长度必须与输入 texts 完全一致。",
+        },
+        {
+          role: "user",
+          content: JSON.stringify({ texts }),
+        },
+      ],
+      temperature: 0.1,
+      response_format: { type: "json_object" },
+    }),
+  });
+  const parsed = JSON.parse(completion.choices?.[0]?.message?.content ?? "{}");
+  return Array.isArray(parsed.translations) ? parsed.translations : [];
+}
+
+async function mergeTranslations(parsed, translated) {
   const merged = structuredClone(parsed);
   merged.source.original_subject_zh = translated.source?.original_subject_zh ?? translated.source?.subject_zh ?? "";
   merged.summary_zh = translated.summary_zh ?? [];
+  const missing = [];
+  const targets = [];
   for (const [sectionIndex, section] of (merged.sections ?? []).entries()) {
     const translatedSection = translated.sections?.[sectionIndex];
     for (const [itemIndex, item] of (section.items ?? []).entries()) {
       const translatedItem = translatedSection?.items?.[itemIndex] ?? {};
       item.title_zh = translatedItem.title_zh ?? "";
       item.paragraphs_zh = translatedItem.paragraphs_zh ?? [];
+      if (!item.title_zh) {
+        missing.push(item.title);
+        targets.push((value) => {
+          item.title_zh = value;
+        });
+      }
+      for (let i = 0; i < (item.paragraphs ?? []).length; i += 1) {
+        if (!item.paragraphs_zh[i]) {
+          missing.push(item.paragraphs[i]);
+          targets.push((value) => {
+            item.paragraphs_zh[i] = value;
+          });
+        }
+      }
+    }
+  }
+  for (let start = 0; start < missing.length; start += 20) {
+    const batch = missing.slice(start, start + 20);
+    const translations = await translateMissingTexts(batch);
+    for (let i = 0; i < batch.length; i += 1) {
+      targets[start + i](translations[i] || batch[i]);
     }
   }
   return merged;
@@ -313,7 +364,7 @@ async function main() {
   }
 
   const translatedPatch = await translateDigest(found.parsed);
-  const translated = mergeTranslations(found.parsed, translatedPatch);
+  const translated = await mergeTranslations(found.parsed, translatedPatch);
   const xml = renderDigest(translated);
   await writeArtifact("latest-translated.json", JSON.stringify(translated, null, 2));
   await writeArtifact("latest-digest.xml", xml);
