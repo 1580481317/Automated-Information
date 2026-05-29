@@ -1,0 +1,40 @@
+name: TLDR AI Daily Digest
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # 09:00 Asia/Shanghai
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate local parser and renderer
+        run: npm run validate
+
+      - name: Generate TLDR AI digest and send Feishu reminder
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL || 'deepseek-v4-flash' }}
+          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          FEISHU_USER_OPEN_ID: ${{ secrets.FEISHU_USER_OPEN_ID }}
+        run: node scripts/cloud-run.mjs
+
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tldr-ai-debug
+          path: tmp/
+          if-no-files-found: ignore

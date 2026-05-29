@@ -1,0 +1,17 @@
+{
+  "name": "ai-tldr-digest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "parse": "node scripts/parse-tldr-email.mjs",
+    "render:lark": "node scripts/render-lark-xml.mjs",
+    "cloud:run": "node scripts/cloud-run.mjs",
+    "auth:gmail:url": "node scripts/google-oauth-url.mjs",
+    "auth:gmail:token": "node scripts/google-oauth-token.mjs",
+    "validate": "node scripts/validate-sample.mjs"
+  },
+  "dependencies": {
+    "@larksuite/cli": "^1.0.42"
+  }
+}
