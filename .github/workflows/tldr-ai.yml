@@ -2,7 +2,7 @@ name: TLDR AI Daily Digest
 
 on:
   schedule:
-    - cron: "0 0 * * *" # 08:00 Asia/Shanghai
+    - cron: "10 0 * * *" # 08:10 Asia/Shanghai; avoid GitHub's top-of-hour schedule congestion
   workflow_dispatch:
 
 jobs:
